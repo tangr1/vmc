@@ -19,4 +19,7 @@ module VMC
   SERVICES_PATH        = 'services'
   USERS_PATH           = 'users'
 
+  # Service const
+  SERVICE_DEFAULT_ALIAS  = "current"
+  SERVICE_DEFAULT_PLAN   = "free"
 end

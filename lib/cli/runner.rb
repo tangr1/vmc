@@ -84,7 +84,8 @@ class VMC::Cli::Runner
 
       opts.on('--json')            {         @options[:json] = true }
 
-      opts.on('-v', '--version')   {         set_cmd(:misc, :version) }
+      # No args, shows at tail
+      opts.on_tail('-v')           {         set_cmd(:misc, :version) }
       opts.on('-h', '--help')      {         puts "#{command_usage}\n"; exit }
 
       opts.on('--port PORT')       { |port|  @options[:port] = port }
@@ -100,6 +101,19 @@ class VMC::Cli::Runner
       opts.on('-u PROXY')          { |proxy| @options[:proxy] = proxy }
 
       opts.on_tail('--options')    {          puts "#{opts}\n"; exit }
+
+      # service options
+      opts.on('--plan PLAN')            {|plan|     @options[:plan] = plan}
+      opts.on('--version [VERSION]')  do |version|
+        unless version
+          # as 'vmc --version'
+          set_cmd(:misc, :version)
+        else
+          @options[:version] = version
+        end
+      end
+      # place holder, provider is not used now.
+      opts.on('--provider PROVIDER')    {|provider| @options[:provider] = provider}
     end
     instances_delta_arg = check_instances_delta!
     @args = opts_parser.parse!(@args)
@@ -333,7 +347,7 @@ class VMC::Cli::Runner
       set_cmd(:apps, :environment_del, 2)
 
     when 'create-service', 'create_service'
-      usage('vmc create-service [service] [servicename] [appname] [--name servicename] [--bind appname]')
+      usage('vmc create-service [service] [servicename] [appname] [--name servicename] [--bind appname] [--version version] [--plan plan] [--provider provider]')
       set_cmd(:services, :create_service) if @args.size == 0
       set_cmd(:services, :create_service, 1) if @args.size == 1
       set_cmd(:services, :create_service, 2) if @args.size == 2

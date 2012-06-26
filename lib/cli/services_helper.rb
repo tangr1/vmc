@@ -12,14 +12,17 @@ module VMC::Cli
       services.each do |service_type, value|
         value.each do |vendor, version|
           version.each do |version_str, service|
-            displayed_services << [ vendor, version_str, service[:description] ]
+            plans = service[:tiers].keys.join(", ")
+            version_str = "#{version_str} (#{service[:alias]})" if service[:alias]
+            provider = service[:provider] || service[:vendor] # backward compatiable
+            displayed_services << [ vendor, version_str, provider, plans, service[:description] ]
           end
         end
       end
       displayed_services.sort! { |a, b| a.first.to_s <=> b.first.to_s}
 
       services_table = table do |t|
-        t.headings = 'Service', 'Version', 'Description'
+        t.headings = 'Service', 'Version', 'Provider', 'Plan', 'Description'
         displayed_services.each { |s| t << s }
       end
       display services_table
@@ -34,18 +37,18 @@ module VMC::Cli
     def display_provisioned_services_table(services)
       return unless services && !services.empty?
       services_table = table do |t|
-        t.headings = 'Name', 'Service'
+        t.headings = 'Name', 'Service', 'Version', 'Plan', 'Provider'
         services.each do |service|
-          t << [ service[:name], service[:vendor] ]
+          t << [ service[:name], service[:vendor], service[:version], service[:tier], service[:provider]||service[:vendor]]
         end
       end
       display services_table
     end
 
-    def create_service_banner(service, name, display_name=false)
+    def create_service_banner(service, name, display_name=false, opts={})
       sn = " [#{name}]" if display_name
       display "Creating Service#{sn}: ", false
-      client.create_service(service, name)
+      client.create_service(service, name, opts)
       display 'OK'.green
     end
 

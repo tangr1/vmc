@@ -167,7 +167,7 @@ class VMC::Client
     json_get(VMC::SERVICES_PATH)
   end
 
-  def create_service(service, name)
+  def create_service(service, name, opts={})
     check_login_status
     services = services_info
     services ||= []
@@ -175,22 +175,54 @@ class VMC::Client
 
     service = service.to_s
 
-    # FIXME!
+    # service options
+    plan = opts[:plan].to_sym if opts[:plan]
+    version = opts[:version].to_sym if opts[:version]
+
+    # target service
+    target_srv = {}
+
     services.each do |service_type, value|
-      value.each do |vendor, version|
-        version.each do |version_str, service_descr|
-          if service == service_descr[:vendor]
-            service_hash = {
-              :type => service_descr[:type], :tier => 'free',
-              :vendor => service, :version => version_str
-            }
-            break
+      value.each do |vendor, versions|
+        if vendor == service.to_sym
+          versions.each do |version_str, service_descr|
+            target_srv[version_str] = service_descr
+            target_srv[service_descr[:alias].to_sym] = service_descr if service_descr[:alias]
           end
+
+          if version
+            if plan
+              # serach the exactly match if both plan and version are given
+              svc_descr = target_srv[version] if target_srv[version][:tiers].keys.include? plan
+            else
+              # serach by version if only version is given
+              svc_descr = target_srv[version]
+            end
+          else
+            if plan
+              # search by plan if only plan is given
+              svc_descr = target_srv.values.find{|descr| descr[:tiers].keys.include? plan}
+            else
+              # using the default alias or random choose the first version when nothing is given
+              svc_descr = target_srv[VMC::SERVICE_DEFAULT_ALIAS.to_sym] || target_srv.first[1]
+            end
+          end
+
+          if svc_descr
+            service_hash = {
+              :type => svc_descr[:type], :tier => (plan || VMC::SERVICE_DEFAULT_PLAN),
+              :vendor => service, :version => svc_descr[:version]
+            }
+          end
+          break
         end
       end
     end
 
-    raise TargetError, "Service [#{service}] is not a valid service choice" unless service_hash
+    raise TargetError, "Service [#{service}\
+#{", version:#{version}" if opts[:version]}\
+#{", alias:#{version_alias}" if opts[:alias]}\
+#{", plan:#{plan}" if opts[:plan]}]is not a valid service choice" unless service_hash
     service_hash[:name] = name
     json_post(path(VMC::SERVICES_PATH), service_hash)
   end
