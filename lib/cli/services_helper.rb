@@ -10,12 +10,13 @@ module VMC::Cli
 
       displayed_services = []
       services.each do |service_type, value|
-        value.each do |vendor, version|
-          version.each do |version_str, service|
-            plans = service[:tiers].keys.join(", ")
-            version_str = "#{version_str} (#{service[:alias]})" if service[:alias]
-            provider = service[:provider] || service[:vendor] # backward compatiable
-            displayed_services << [ vendor, version_str, provider, plans, service[:description] ]
+        value.each do |name, providers|
+          providers.each do |provider, versions|
+            versions.each do |version_str, service|
+              plans = service[:plans].join(", ")
+              version_str = "#{version_str} (#{service[:alias]})" if service[:alias]
+              displayed_services << [ name, version_str, provider, plans, service[:description] ]
+            end
           end
         end
       end
